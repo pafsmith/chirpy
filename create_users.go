@@ -15,10 +15,11 @@ func (cfg *apiConfig) handerCreateUser(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	type userResponse struct {
-		ID        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
+		ID          string `json:"id"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	var req requestBody
@@ -53,10 +54,11 @@ func (cfg *apiConfig) handerCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := userResponse{
-		ID:        user.ID.String(),
-		CreatedAt: user.CreatedAt.String(),
-		UpdatedAt: user.UpdatedAt.String(),
-		Email:     user.Email,
+		ID:          user.ID.String(),
+		CreatedAt:   user.CreatedAt.String(),
+		UpdatedAt:   user.UpdatedAt.String(),
+		Email:       user.Email,
+		IsChirpyRed: user.IsChirpyRed,
 	}
 	respondWithJSON(w, http.StatusCreated, resp)
 	return
