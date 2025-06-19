@@ -1,0 +1,14 @@
+-- +goose Up
+CREATE TABLE REFRESH_TOKENS (
+    token VARCHAR(255) primary key,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id UUID NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+
+);
+
+-- +goose Down
+DROP TABLE REFRESH_TOKENS;

@@ -16,6 +16,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
 }
 
 // Middleware to increment fileserverHits
@@ -35,8 +36,9 @@ func main() {
 	const port = "8080"
 
 	apiCfg := apiConfig{
-		db:       dbQueries,
-		platform: os.Getenv("PLATFORM"),
+		db:        dbQueries,
+		platform:  os.Getenv("PLATFORM"),
+		jwtSecret: os.Getenv("JWT_SECRET"),
 	}
 
 	mux := http.NewServeMux()
@@ -49,6 +51,10 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/users", apiCfg.handerCreateUser)
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLoginUser)
+
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshToken)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

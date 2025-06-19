@@ -1,14 +1,24 @@
 package main
 
 import (
+	"chirpy/internal/auth"
 	"chirpy/internal/database"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserID    uuid.UUID `json:"user_id"`
+	Body      string    `json:"body"`
+}
 
 func cleanProfanity(body string) string {
 	badWords := []string{"kerfuffle", "sharbert", "fornax"}
@@ -25,20 +35,26 @@ func cleanProfanity(body string) string {
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type requestBody struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
-	type responseBody struct {
-		ID        string    `json:"id"`
-		CreatedAt string    `json:"created_at"`
-		UpdatedAt string    `json:"updated_at"`
-		Body      string    `json:"body"`
-		UserID    uuid.UUID `json:"user_id"`
+
+	// --- JWT Authentication ---
+	tokenStr, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Missing or invalid Authorization header")
+		return
 	}
+
+	userID, err := auth.ValidateJWT(tokenStr, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
+		return
+	}
+	// --- End JWT Authentication ---
 
 	decoder := json.NewDecoder(r.Body)
 	var req requestBody
-	err := decoder.Decode(&req)
+	err = decoder.Decode(&req)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Something went wrong")
 		return
@@ -57,7 +73,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned,
-		UserID: req.UserID,
+		UserID: userID,
 	})
 
 	if err != nil {
@@ -65,10 +81,11 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp")
 		return
 	}
-	resp := responseBody{
-		ID:        chirp.ID.String(),
-		CreatedAt: chirp.CreatedAt.String(),
-		UpdatedAt: chirp.UpdatedAt.String(),
+	resp := Chirp{
+
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
 		Body:      cleaned,
 		UserID:    chirp.UserID,
 	}
